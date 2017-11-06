@@ -12,9 +12,9 @@ var _react = require('react');
 
 var _react2 = _interopRequireDefault(_react);
 
-var _reactDom = require('react-dom');
+var _throttle = require('lodash/throttle');
 
-var _reactDom2 = _interopRequireDefault(_reactDom);
+var _throttle2 = _interopRequireDefault(_throttle);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -24,25 +24,6 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; } /* eslint-disable no-undef */
 
-
-function debounce(func) {
-  var timeout = void 0;
-  return function () {
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    var context = this;
-
-    var lastCall = function lastCall() {
-      timeout = null;
-      func.apply(context, args);
-    };
-
-    clearTimeout(timeout);
-    timeout = setTimeout(lastCall, 100);
-  };
-}
 
 function getBrowserScrollTop() {
   return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
@@ -56,8 +37,6 @@ var IsScrollingHoC = function IsScrollingHoC(TheComponent) {
       _classCallCheck(this, IsScrollingComponent);
 
       var _this = _possibleConstructorReturn(this, (IsScrollingComponent.__proto__ || Object.getPrototypeOf(IsScrollingComponent)).call(this, props));
-
-      _this.DOMElement = window;
 
       _this.setScrollOn = function () {
         var _this$state = _this.state,
@@ -74,35 +53,26 @@ var IsScrollingHoC = function IsScrollingHoC(TheComponent) {
 
         if (lastScrollTop) {
           _this.detectDirection(lastScrollTop, getBrowserScrollTop());
-          _this.setState({ lastScrollTop: null });
         }
         _this.setScrollOff();
       };
 
-      _this.setScrollOff = debounce(function () {
+      _this.DOMElement = window;
+      _this.setScrollOff = (0, _throttle2.default)(function () {
         if (_this.state.isScrolling) {
-          _this.setState({ isScrolling: false, direction: null, lastScrollTop: null });
+          _this.setState({ isScrolling: false });
         }
-      });
+      }, 100);
 
       _this.state = {
         isScrolling: false,
         lastScrollTop: null,
-        direction: null
+        scrollDirection: 'down'
       };
       return _this;
     }
 
     _createClass(IsScrollingComponent, [{
-      key: 'detectDirection',
-      value: function detectDirection(lastScrollTop, nextScrollTop) {
-        if (lastScrollTop < nextScrollTop) {
-          this.setState({ direction: 'down' });
-          return;
-        }
-        this.setState({ direction: 'up' });
-      }
-    }, {
       key: 'componentDidMount',
       value: function componentDidMount() {
         if (this.DOMElement) {
@@ -117,13 +87,18 @@ var IsScrollingHoC = function IsScrollingHoC(TheComponent) {
         }
       }
     }, {
+      key: 'detectDirection',
+      value: function detectDirection(lastScrollTop, nextScrollTop) {
+        if (lastScrollTop < nextScrollTop) {
+          this.setState({ scrollDirection: 'down', lastScrollTop: null });
+        } else {
+          this.setState({ scrollDirection: 'up', lastScrollTop: null });
+        }
+      }
+    }, {
       key: 'render',
       value: function render() {
-        return _react2.default.createElement(TheComponent, _extends({}, this.props, {
-          isScrolling: this.state.isScrolling,
-          isScrollingDown: this.state.direction === 'down',
-          isScrollingUp: this.state.direction === 'up'
-        }));
+        return _react2.default.createElement(TheComponent, _extends({}, this.props, this.state));
       }
     }]);
 
